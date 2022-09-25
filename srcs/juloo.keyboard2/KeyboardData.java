@@ -18,13 +18,15 @@ class KeyboardData
   public final float keysHeight;
   /** Whether to add extra keys. */
   public final boolean extra_keys;
+  /** Whether to possibly add NumPad. */
+  public final boolean num_pad;
 
   public KeyboardData mapKeys(MapKey f)
   {
     ArrayList<Row> rows_ = new ArrayList<Row>();
     for (Row r : rows)
       rows_.add(r.mapKeys(f));
-    return new KeyboardData(rows_, keysWidth, extra_keys);
+    return new KeyboardData(rows_, keysWidth, extra_keys, num_pad);
   }
 
   /** Add keys from the given iterator into the keyboard. Extra keys are added
@@ -46,7 +48,36 @@ class KeyboardData
         for (int c = 1; c <= 4; c++)
           addExtraKeys_to_row(rows, k, r, c);
     }
-    return new KeyboardData(rows, keysWidth, extra_keys);
+    return new KeyboardData(rows, keysWidth, extra_keys, num_pad);
+  }
+
+  public KeyboardData addNumPad()
+  {
+    if (!num_pad || _numPadKeyboardData == null)
+      return this;
+    ArrayList<Row> extendedRows = new ArrayList<Row>();
+    Iterator<Row> iterNumPadRows = _numPadKeyboardData.rows.iterator();
+    for (Row row : rows)
+    {
+      ArrayList<KeyboardData.Key> keys = new ArrayList<Key>(row.keys);
+      float height = row.height;
+      float shift = row.shift;
+      if (iterNumPadRows.hasNext())
+      {
+        Row numPadRow = iterNumPadRows.next();
+        Key k = numPadRow.keys.get(0);
+        if (k != null) {
+          float firstNumPadShift = 0.5f + keysWidth - row.keysWidth;
+          Key shiftedKey = new Key(k.key0, k.key1, k.key2, k.key3, k.key4, k.width, firstNumPadShift, k.edgekeys);
+          numPadRow.keys.set(0, shiftedKey);
+        }
+        keys.addAll(numPadRow.keys);
+        height = Math.max(height, numPadRow.height);
+        shift = Math.max(shift, numPadRow.shift);
+      }
+      extendedRows.add(new Row(keys, height, shift));
+    }
+    return new KeyboardData(extendedRows, compute_max_width(extendedRows), extra_keys, num_pad);
   }
 
   public Key findKeyWithValue(KeyValue kv)
@@ -75,6 +106,7 @@ class KeyboardData
   }
 
   private static Row _bottomRow = null;
+  private static KeyboardData _numPadKeyboardData = null;
   private static Map<Integer, KeyboardData> _layoutCache = new HashMap<Integer, KeyboardData>();
 
   public static KeyboardData load(Resources res, int id)
@@ -86,6 +118,10 @@ class KeyboardData
       {
         if (_bottomRow == null)
           _bottomRow = parse_bottom_row(res.getXml(R.xml.bottom_row));
+        if (_numPadKeyboardData == null)
+        {
+          _numPadKeyboardData = parse_keyboard(res.getXml(R.xml.numpad));
+        }
         l = parse_keyboard(res.getXml(id));
         _layoutCache.put(id, l);
       }
@@ -103,13 +139,14 @@ class KeyboardData
       throw new Exception("Empty layout file");
     boolean bottom_row = parser.getAttributeBooleanValue(null, "bottom_row", true);
     boolean extra_keys = parser.getAttributeBooleanValue(null, "extra_keys", true);
+    boolean num_pad = parser.getAttributeBooleanValue(null, "num_pad", true);
     ArrayList<Row> rows = new ArrayList<Row>();
     while (expect_tag(parser, "row"))
         rows.add(Row.parse(parser));
     float kw = compute_max_width(rows);
     if (bottom_row)
       rows.add(_bottomRow.updateWidth(kw));
-    return new KeyboardData(rows, kw, extra_keys);
+    return new KeyboardData(rows, kw, extra_keys, num_pad);
   }
 
   private static float compute_max_width(List<Row> rows)
@@ -127,7 +164,7 @@ class KeyboardData
     return Row.parse(parser);
   }
 
-  protected KeyboardData(List<Row> rows_, float kw, boolean xk)
+  protected KeyboardData(List<Row> rows_, float kw, boolean xk, boolean np)
   {
     float kh = 0.f;
     for (Row r : rows_)
@@ -136,6 +173,7 @@ class KeyboardData
     keysWidth = kw;
     keysHeight = kh;
     extra_keys = xk;
+    num_pad = np;
   }
 
   public static class Row
@@ -146,7 +184,7 @@ class KeyboardData
     /** Extra empty space on the top. */
     public final float shift;
     /** Total width of the row. */
-    private final float keysWidth;
+    public final float keysWidth;
 
     protected Row(List<Key> keys_, float h, float s)
     {
