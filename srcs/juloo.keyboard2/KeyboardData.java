@@ -2,6 +2,8 @@ package juloo.keyboard2;
 
 import android.content.res.Resources;
 import android.content.res.XmlResourceParser;
+
+import java.text.DecimalFormatSymbols;
 import java.util.ArrayList;
 import java.util.function.Function;
 import java.util.HashMap;
@@ -107,30 +109,21 @@ class KeyboardData
 
   private static Row _bottomRow = null;
   private static KeyboardData _numPadKeyboardData = null;
-  private static Map<Integer, KeyboardData> _layoutCache = new HashMap<Integer, KeyboardData>();
 
   public static KeyboardData load(Resources res, int id)
   {
-    KeyboardData l = _layoutCache.get(id);
-    if (l == null)
-    {
-      try
-      {
+    try {
         if (_bottomRow == null)
           _bottomRow = parse_bottom_row(res.getXml(R.xml.bottom_row));
-        if (_numPadKeyboardData == null)
-        {
-          _numPadKeyboardData = parse_keyboard(res.getXml(R.xml.numpad));
-        }
-        l = parse_keyboard(res.getXml(id));
-        _layoutCache.put(id, l);
-      }
-      catch (Exception e)
-      {
-        e.printStackTrace();
-      }
+        _numPadKeyboardData = parse_keyboard(res.getXml(R.xml.numpad));
+
+        return parse_keyboard(res.getXml(id));
     }
-    return l;
+    catch (Exception e)
+    {
+      e.printStackTrace();
+    }
+    return null;
   }
 
   private static KeyboardData parse_keyboard(XmlResourceParser parser) throws Exception

@@ -212,7 +212,7 @@ final class KeyValue
     keys.put(name, new KeyValue(symbol, kind, code, flags));
   }
 
-  private static void addCharKey(String name, String symbol, char c, int flags)
+  protected static void addCharKey(String name, String symbol, char c, int flags)
   {
     addKey(name, symbol, KIND_CHAR, c, flags);
   }

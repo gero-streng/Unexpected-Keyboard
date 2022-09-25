@@ -9,6 +9,8 @@ import android.preference.PreferenceManager;
 import android.util.DisplayMetrics;
 import android.util.TypedValue;
 import android.view.KeyEvent;
+
+import java.text.DecimalFormatSymbols;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.HashSet;
@@ -94,6 +96,13 @@ final class Config
   {
     SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
     Resources res = context.getResources();
+
+    char decSep = DecimalFormatSymbols.getInstance().getDecimalSeparator() == '.' ? '.' : ',';
+    KeyValue.addCharKey("decimal_separator", Character.toString(decSep), decSep, KeyValue.FLAG_KEY_FONT);
+    // DecimalFormatSymbols.getInstance().getGroupingSeparator() returns 0x202F Narrow No-Break Space (NNBSP) for some locales
+    char groupSep = decSep == '.' ? ',' : '.';
+    KeyValue.addCharKey("grouping_separator", Character.toString(groupSep), groupSep, KeyValue.FLAG_KEY_FONT);
+
     DisplayMetrics dm = res.getDisplayMetrics();
     // The height of the keyboard is relative to the height of the screen.
     // This is the height of the keyboard if it have 4 rows.
